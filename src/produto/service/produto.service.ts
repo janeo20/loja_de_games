@@ -1,0 +1,71 @@
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { DeleteResult, ILike, Repository } from "typeorm";
+import { Produto } from "../entities/produto.entity";
+
+@Injectable()
+export class ProdutoService {
+
+    constructor(
+        @InjectRepository(Produto)
+        private ProdutoRepository: Repository<Produto>
+    ) {}
+
+    async findAll(): Promise<Produto[]>{
+        return await this.ProdutoRepository.find({
+            relations: {
+                categoria: true
+            }
+        })
+    }
+
+    async findById (id: number): Promise<Produto>{
+        let produto = await this.ProdutoRepository.findOne({
+
+            where: {
+                id
+            },
+            relations: {
+                categoria: true
+            }
+        })
+        if(!Produto)
+        throw new HttpException('Produto não existe', HttpStatus.NOT_FOUND)
+
+        return produto 
+    }
+
+    async findByMarca (marca: string): Promise<Produto[]> {
+        return await this.ProdutoRepository.find({
+            where: {
+                marca: ILike(`%${marca}%`)
+            },
+            relations: {
+                categoria: true
+            }
+        })
+    }
+
+    async create(produto: Produto): Promise<Produto> {
+        return await this.ProdutoRepository.save(produto)
+    }
+
+    async update(produto: Produto): Promise<Produto> {
+        let buscarProduto = await this.findById(produto.id)
+
+        if(buscarProduto || produto.id) 
+            throw new HttpException('Produto não Existe', HttpStatus.NOT_FOUND)
+        
+             return await this.ProdutoRepository.save(produto)
+    }
+
+    async delete(id: number): Promise<DeleteResult> {
+        let buscarProduto = await this.findById(id)
+
+        if (!buscarProduto)
+            throw new HttpException('Produto Não Encontrada', HttpStatus.NOT_FOUND)
+
+        return await this.ProdutoRepository.delete(id)
+    }
+
+}
